@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure WiFi Gateway Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin-bottom: 30px; border: 1px solid #ccc; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Secure WiFi Gateway Dashboard</h1>
+
+    <div class="section">
+        <h2>Connected Devices</h2>
+        <table id="devices-table">
+            <thead>
+                <tr>
+                    <th>MAC Address</th>
+                    <th>IP Address</th>
+                    <th>Signal Strength</th>
+                    <th>Connection Time</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Security Alerts</h2>
+        <table id="logs-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>MAC Address</th>
+                    <th>Signal</th>
+                    <th>Channel</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Tor Circuit Visualization</h2>
+        <canvas id="tor-chart" width="400" height="200"></canvas>
+        <div id="tor-circuits"></div>
+    </div>
+
+    <div class="section">
+        <h2>Network Usage</h2>
+        <table id="usage-table">
+            <thead>
+                <tr>
+                    <th>MAC</th>
+                    <th>IP</th>
+                    <th>Bytes Sent</th>
+                    <th>Bytes Received</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function fetchData(endpoint, tableId, columns) {
+            try {
+                const response = await fetch(`http://localhost:5000/${endpoint}`);
+                const data = await response.json();
+                const tbody = document.querySelector(`#${tableId} tbody`);
+                tbody.innerHTML = '';
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    columns.forEach(col => {
+                        const td = document.createElement('td');
+                        td.textContent = row[col];
+                        tr.appendChild(td);
+                    });
+                    if (tableId === 'devices-table') {
+                        const actionTd = document.createElement('td');
+                        const blockBtn = document.createElement('button');
+                        blockBtn.textContent = 'Block';
+                        blockBtn.onclick = () => blockMac(row.mac);
+                        actionTd.appendChild(blockBtn);
+                        tr.appendChild(actionTd);
+                    }
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error(`Error fetching ${endpoint}:`, error);
+            }
+        }
+
+        async function blockMac(mac) {
+            try {
+                const response = await fetch(`http://localhost:5000/block/${mac}`);
+                const result = await response.json();
+                alert(result.status || result.error);
+                fetchData('devices', 'devices-table', ['mac', 'ip', 'signal_strength', 'connection_time']);
+            } catch (error) {
+                console.error('Error blocking MAC:', error);
+            }
+        }
+
+        async function updateTorVisualization() {
+            try {
+                const response = await fetch('http://localhost:5000/tor-circuits');
+                const circuits = await response.json();
+                const circuitsDiv = document.getElementById('tor-circuits');
+                circuitsDiv.innerHTML = '<h3>Current Circuits</h3>';
+                circuits.forEach(circuit => {
+                    const p = document.createElement('p');
+                    p.textContent = `Circuit ${circuit.circuit_id}: ${circuit.entry_country} -> ${circuit.middle_country} -> ${circuit.exit_country}`;
+                    circuitsDiv.appendChild(p);
+                });
+
+                // Simple chart
+                const ctx = document.getElementById('tor-chart').getContext('2d');
+                const countries = circuits.map(c => c.exit_country);
+                const counts = countries.reduce((acc, country) => {
+                    acc[country] = (acc[country] || 0) + 1;
+                    return acc;
+                }, {});
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(counts),
+                        datasets: [{
+                            label: 'Exit Node Countries',
+                            data: Object.values(counts),
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    }
+                });
+            } catch (error) {
+                console.error('Error updating Tor visualization:', error);
+            }
+        }
+
+        function updateDashboard() {
+            fetchData('devices', 'devices-table', ['mac', 'ip', 'signal_strength', 'connection_time']);
+            fetchData('logs', 'logs-table', ['timestamp', 'mac', 'signal', 'channel', 'message']);
+            fetchData('network-usage', 'usage-table', ['mac', 'ip', 'bytes_sent', 'bytes_received', 'timestamp']);
+            updateTorVisualization();
+        }
+
+        // Update every 5 seconds
+        setInterval(updateDashboard, 5000);
+        updateDashboard(); // Initial load
+    </script>
+</body>
+</html>

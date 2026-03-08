@@ -1,0 +1,8 @@
+Flask
+scapy
+pyyaml
+stem
+requests
+netifaces
+psutil
+flask-cors

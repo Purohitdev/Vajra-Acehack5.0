@@ -1,0 +1,36 @@
+interface: wlan1               # Wireless monitoring interface in monitor mode
+ap_interface: wlan2             # WiFi Access Point interface
+internet_interface: eth0        # Internet uplink interface
+log_path: logs/wifi_attack_logs.db # Path to your SQLite log database
+scan_interval: 2                   # Interval (seconds) for scanning (if used)
+block_method: nftables             # Firewall method (nftables recommended on modern Linux)
+firewall_host: 127.0.0.1           # Host for firewall server
+firewall_port: 9000                # Port for firewall server
+socket_timeout: 5                  # Timeout for socket operations (seconds)
+api_port: 5000                     # Port for Flask API server
+debug: true                        # Enable Flask debug mode
+log_level: INFO                    # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+
+# Access Point settings
+ssid: SecureAP
+wpa_passphrase: mysecurepassword
+channel: 6
+
+# DHCP settings
+dhcp_range: 192.168.1.10,192.168.1.100,255.255.255.0,24h
+
+# Tor settings
+tor_control_port: 9051
+tor_socks_port: 9050
+tor_transparent_port: 9040
+
+# Bandwidth limits (in kbps)
+default_download_limit: 1000
+default_upload_limit: 500
+
+# Geolocation API
+geolocation_api: http://ip-api.com/json/
+
+# Whitelisted ports (allow incoming connections)
+whitelisted_ports:
+  - 5173
