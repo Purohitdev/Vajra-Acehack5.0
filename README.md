@@ -13,7 +13,7 @@ Vajra v1.0 is an integrated cybersecurity solution featuring:
 
 ## 🏗️ Architecture
 
-```
+````
 ┌─────────────────────────────────────────────────────────────┐
 │                    Vajra v1.0 Platform                      │
 ├─────────────────────────────────────────────────────────────┤
